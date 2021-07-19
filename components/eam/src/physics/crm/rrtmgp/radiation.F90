@@ -371,9 +371,6 @@ contains
             radiation_do = nstep == 0 .or. iradlw == 1                     &
                           .or. (mod(nstep-1,iradlw) == 0 .and. nstep /= 1) &
                           .or. nstep <= irad_always
-         case ('aeres') ! write absorptivity/emissivity to restart file this timestep?
-            ! for RRTMG there is no abs/ems restart file
-            radiation_do = .false.
          case default
             call endrun('radiation_do: unknown operation:'//op)
       end select
@@ -1532,6 +1529,14 @@ contains
                      call t_stopf('rad_aerosol_optics_lw')
                   end if ! radiation_do('lw')
                end if ! do_aerosol_rad
+
+               ! make sure water path variables are zeroed out
+               do ilay = 1, pver
+                  do ic = 1,ncol
+                     iclwp(ic,ilay) = 0_r8
+                     iciwp(ic,ilay) = 0_r8
+                  end do
+               end do
 
                ! Loop over CRM columns; call routines designed to work with
                ! pbuf/state over ncol columns for each CRM column index, and pack

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Namelist creator for E3SM's MPAS OCEAN component
@@ -54,13 +54,6 @@ def buildnml(case, caseroot, compname):
     mpasoconf_dir = os.path.join(casebuild, "mpasoconf")
 
     if not os.path.isdir(mpasoconf_dir): os.mkdir(mpasoconf_dir)
-
-    #--------------------------------------------------------------------
-    # MPAS-O with active BGC fails bfb restart with more than 1 thread
-    # DO NOT run with ocean bgc turned on with more than 1 thread
-    #--------------------------------------------------------------------
-    expect(nthrds_ocn == 1 or ocn_bgc == 'no_bgc',
-           " ERROR mpas-o buildnml: ocn bgc cannot be run with more than 1 thread\n")
 
     #--------------------------------------------------------------------
     # Determine if initial conditions are spunup, from compset
@@ -230,8 +223,8 @@ def buildnml(case, caseroot, compname):
         ic_date = '171116'
         ic_prefix = 'oRRS18to6v3'
         if ocn_ic_mode == 'spunup':
-            ic_date = '171031'
-            ic_prefix = 'oRRS18to6v3_80Layer.restartFromAnvil'
+            ic_date = '210321'
+            ic_prefix = 'oRRS18to6v3_80Layer.restartFromChrysalis'
 
     elif ocn_grid == 'oRRS15to5':
         decomp_date = '151209'
@@ -268,7 +261,7 @@ def buildnml(case, caseroot, compname):
         decomp_date = '200904'
         decomp_prefix = 'mpas-o.graph.info.'
         restoring_file = 'sss.PHC2_monthlyClimatology.EC30to60E2r2.200910.nc'
-        analysis_mask_file = 'EC30to60E2r2_moc_masks_and_transects.nc'
+        analysis_mask_file = 'EC30to60E2r2_mocBasinsAndTransects20210623.nc'
         ic_date = '210210'
         ic_prefix = 'ocean.EC30to60E2r2'
         if ocn_ic_mode == 'spunup':
@@ -279,12 +272,46 @@ def buildnml(case, caseroot, compname):
         decomp_date = '200714'
         decomp_prefix = 'mpas-o.graph.info.'
         restoring_file = 'sss.PHC2_monthlyClimatology.WC14to60E2r3.200715.nc'
-        analysis_mask_file = 'WC14to60E2r3_moc_masks_and_transects.nc'
+        analysis_mask_file = 'WC14to60E2r3_mocBasinsAndTransects20210623.nc'
         ic_date = '210210'
         ic_prefix = 'ocean.WC14to60E2r3'
         if ocn_ic_mode == 'spunup':
             ic_date = '210226'
             ic_prefix = 'mpaso.WC14to60E2r3.rstFromG-anvil'
+
+    elif ocn_grid == 'WCAtl12to45E2r4':
+        decomp_date = '210318'
+        decomp_prefix = 'mpas-o.graph.info.'
+        restoring_file = 'sss.PHC2_monthlyClimatology.WCAtl12to45E2r4.210325.nc'
+        analysis_mask_file = 'WCAtl12to45E2r4_moc_masks_and_transects.nc'
+        ic_date = '210318'
+        ic_prefix = 'ocean.WCAtl12to45E2r4'
+        if ocn_ic_mode == 'spunup':
+            ic_date = '210318'
+            ic_prefix = 'mpaso.WCAtl12to45E2r4.rstFromG-anvil'
+
+    elif ocn_grid == 'SOwISC12to60E2r4':
+        decomp_date = '210107'
+        decomp_prefix = 'mpas-o.graph.info.'
+        restoring_file = 'sss.PHC2_monthlyClimatology.SOwISC12to60E2r4_nomask.210120.nc'
+        analysis_mask_file = 'SOwISC12to60E2r4_mocBasinsAndTransects20210623.nc'
+        ic_date = '210107'
+        ic_prefix = 'ocean.SOwISC12to60E2r4'
+        if ocn_ic_mode == 'spunup':
+            ic_date = '210203'
+            ic_prefix = 'mpaso.SOwISC12to60E2r4.rstFromG-anvil'
+
+    elif ocn_grid == 'ECwISC30to60E2r1':
+        decomp_date = '200915'
+        decomp_prefix = 'mpas-o.graph.info.'
+        restoring_file = 'sss.PHC2_monthlyClimatology.ECwISC30to60E2r1_nomask.201221.nc'
+        analysis_mask_file = 'ECwISC30to60E2r1_mocBasinsAndTransects20210623.nc'
+        ic_date = '210413'
+        ic_prefix = 'ocean.ECwISC30to60E2r1'
+        if ocn_ic_mode == 'spunup':
+            ic_date = '210414'
+            ic_prefix = 'mpaso.ECwISC30to60E2r1.rstFromG-anvil'
+
 
 
     #--------------------------------------------------------------------
@@ -306,6 +333,9 @@ def buildnml(case, caseroot, compname):
     if run_type == 'hybrid' or run_type == 'branch':
         input_file = "{}/{}.mpaso.rst.{}_{}.nc".format(rundir, run_refcase, run_refdate, run_reftod)
         expect(os.path.exists(input_file), "ERROR mpaso buildnml: missing specified restart file for branch or hybrid run: " + input_file)
+        restart_file = "{}/{}.mpaso.rst.{}_{}.nc".format(rundir, casename, run_refdate, run_reftod)
+        if not os.path.exists(restart_file):
+            safe_copy(input_file, restart_file)
 
     #--------------------------------------------------------------------
     # Generate input data file with stream-specified files
@@ -1074,6 +1104,7 @@ def buildnml(case, caseroot, compname):
         lines.append('    <var name="longWaveHeatFluxDown"/>')
         lines.append('    <var name="seaIceHeatFlux"/>')
         lines.append('    <var name="shortWaveHeatFlux"/>')
+        lines.append('    <var name="frazilTemperatureTendency"/>')
         lines.append('    <var name="evaporationFlux"/>')
         lines.append('    <var name="seaIceSalinityFlux"/>')
         lines.append('    <var name="seaIceFreshWaterFlux"/>')
@@ -1136,6 +1167,7 @@ def buildnml(case, caseroot, compname):
         lines.append('    <var name="activeTracersTendML"/>')
         lines.append('    <var_array name="activeTracerVerticalAdvectionTopFlux"/>')
         lines.append('    <var_array name="activeTracerHorizontalAdvectionEdgeFlux"/>')
+        lines.append('    <var_array name="totalFreshWaterTemperatureFlux"/>')
         if ocn_iceberg == 'true':
             lines.append('    <var name="icebergHeatFlux"/>')
             lines.append('    <var name="icebergFreshWaterFlux"/>')
